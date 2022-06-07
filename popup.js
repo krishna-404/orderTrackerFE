@@ -8,10 +8,10 @@ allOrdersInputBtn.addEventListener("click", async() => {
 
 fkOrderInputBtn.addEventListener("click", async() => {
     let [tab] = await chrome.tabs.query({url:"https://seller.flipkart.com/*"});
-    
+
     chrome.scripting.executeScript({
         target: {tabId: tab.id},
-        files: ["jquery-3.6.0.js", "flipkart/fkOrderInput.js"]
+        files: ["jquery-3.6.0.js", "flipkart/fkNavigation.js", "flipkart/fkOrderInput.js"]
     });
 
 })

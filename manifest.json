@@ -20,6 +20,14 @@
         "https://seller.flipkart.com/*",
         "http://localhost:1729/*"
     ],
+    "content_scripts": [
+        {
+            "matches": ["https://seller.flipkart.com/*"],
+            "js": ["jquery-3.6.0.js", "flipkart/fkNavigation.js", "flipkart/fkOrderInput.js"]
+            // "run_at": "document_idle",
+            // "all_frames": false
+        }
+    ],
     "action": {
         "default_popup": "popup.html",
         "default_icon": {

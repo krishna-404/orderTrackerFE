@@ -11,15 +11,18 @@ chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
     if(msg.action === "Check orders exist") {
         let apiUrl = `${config.apiUrl}/order/exists/`;
         console.log(apiUrl); 
-        fetch(apiUrl, {
+
+        const fetchReq = {
             method: 'POST',
-            mode: 'no-cors',
+            mode: 'cors',
             cache: 'no-cache',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(msg)
-        }).then(async apiRes => {
+        }
+        console.log({fetchReq});
+        fetch(apiUrl, fetchReq ).then(async apiRes => {
             console.log(apiRes);
 
             if (apiRes.status !== 200) {
@@ -29,30 +32,29 @@ chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
 
             apiRes.json().then((output) => {
                 console.log(output);
-                chrome.runtime.sendMessage({output, action:"Res - Check orders exist"})          
+                // chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                //     chrome.tabs.sendMessage(tabs[0].id, {greeting: "hello"}, function(response) {
+                //       console.log(response.farewell);
+                //     });
+                //   });
+                chrome.tabs.sendMessage(sender.tab.id, {output, action:"Res - Check orders exist"});
             });
         }).catch(err => {
             console.log("error in fecth", {err})
         })
-    } else if (req.action === "Create order") {
-        let apiUrl = `${config.apiUrl}/order/create`;
+    } else if (msg.action === "Create orders") {
+        let apiUrl = `${config.apiUrl}/orders/create`;
         console.log(apiUrl); 
         fetch(apiUrl, {
             method: 'POST',
-            mode: 'no-cors',
+            mode: 'cors',
             cache: 'no-cache',
             headers: {
                 'Content-Type': 'application/json'
             },            
-            body: JSON.stringify(req.orderData)
+            body: JSON.stringify(msg.ordersDataArray)
         }).then(apiRes => {
             console.log(apiRes, apiRes.json());
-
-            if(apiRes.status !== 200) {
-                msgRes({status: "Error", message:"Some problem with creating order." });
-            }
-
-            msgRes(apiRes.json());
         })
     }
 })

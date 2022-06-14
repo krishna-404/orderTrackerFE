@@ -6,12 +6,14 @@ allOrdersInputBtn.addEventListener("click", async() => {
     }
 })
 
+let fkClickCount = 0;
 fkOrderInputBtn.addEventListener("click", async() => {
     let [tab] = await chrome.tabs.query({url:"https://seller.flipkart.com/*"});
 
-    chrome.scripting.executeScript({
-        target: {tabId: tab.id},
-        files: ["jquery-3.6.0.js", "flipkart/fkNavigation.js", "flipkart/fkOrderInput.js"]
-    });
+    // chrome.scripting.executeScript({
+    //     target: {tabId: tab.id},
+    //     func: fkOrderInput
+    // });
+    chrome.tabs.sendMessage(tab.id, {action: "Check Flipkart Orders"});
 
 })

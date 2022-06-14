@@ -1,63 +1,98 @@
-//navigate to order page
+let pathUrl, orderState;
+const delay = ms => new Promise(res => setTimeout(res, ms));
 
-const navigateToOrder = async () => {
-    $("#Orders a div").click();
+chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
+    console.log(msg, sender);
+    if (msg.action === "Check Flipkart Orders") {
+        $("#Orders a div").click();
 
-    await delay(1000);
-    console.log(await handleNavigation());
-}
+        await delay(1000);
+        console.log(await handleNavigation());
+    }
+});
 
-const handleNavigation = async () => {
+const handleNavigation = async (previousState) => {
 
-    const delay = ms => new Promise(res => setTimeout(res, ms));
+    let nextElementMarker;
 
-    //check the number of orders in pending labels
-    let pendingLabelsEl = $("div:contains('Pending Labels')");
-    let pendingLabelsQty = pendingLabelsEl.parent().children("div span").text();
-    //if >0 navigate to pending labels
-    if(pendingLabelsQty > 0) {
-        pendingLabelsEl.click();
+    switch (previousState) {
+        case "shipments_to_pack":
+            nextElementMarker = "---";
+            previousState = "shipments_upcoming";
+            break;
+        case "shipments_upcoming":
+            nextElementMarker = "Pending RTD";
+            previousState = "shipments_to_dispatch";
+            break;
+        case "shipments_to_dispatch":
+            nextElementMarker = "Pending Handover";
+            previousState = "shipments_to_handover";
+            break;
+        case "shipments_to_handover":
+            nextElementMarker = "In Transit";
+            previousState = "shipments_in_transit";
+            break;
+        case "shipments_in_transit":
+            nextElementMarker = "Pending Services";
+            previousState = "pending_services_tab";
+            break;
+        case "pending_services_tab":
+            nextElementMarker = "In last 30 days";
+            previousState = "shipments_delivered";
+            break;
+        case "shipments_delivered":
+            return "Flipkart Order Sync Complete";
+            break;
+        default:
+            nextElementMarker = "Pending Labels";
+            previousState = "shipments_to_pack";
+    };
+
+    //check the number of orders in Element
+    let elementSelect = $(`div:contains(${nextElementMarker})`);
+    let elementSelectQty = elementSelect.parent().children("div span").text();
+    //if Qty>0 navigate to Element
+    if(Number(elementSelectQty) > 0) {
+        elementSelectQty.click();
         await delay(2000);
 
-        //read & input all the orders
-        await fkOrderInput();
-    }
-
-
-
-    //check the number of orders in pending RTD
-
-    //if >0 navigate to pending RTD
-
-    //read & input all the orders
-
-
-
-    //check the number of orders in pending handover
-
-    //if >0 navigate to pending handover
-
-    //read & input all the orders
-
-
-
-    //check the number of orders in upcoming orders
-
-    //if >0 navigate to upcoming orders
-
-    //read & input all the orders
-
-
-
-    //check the number of orders in completed orders
-
-    let completedOrdersEl = $("div:contains('In last 30 days')");
-
-    //if >0 navigate to completed orders
-    completedOrdersEl.click();
-    await delay(2000);
+        pathUrl = document.location.href;
+        let searchParams = new URLSearchParams(pathUrl.split("?")[1]);
+        orderState = searchParams.get('orderState');
+        console.log({pathUrl, orderState});
     
-    //read & input all the orders
+        if(orderState != "shipments_to_handover"){
+            await getOrderIds();
+        } else {
+            return handlePendingHandover();
+        }
+    }
+    //if Qty = 0 switch to next element
+    else {
+        console.log({nextElementMarker, previousState});
+        return handleNavigation(previousState);
+    }
+}
 
-    return "Flipkart Order Sync Complete"
+
+// Handle the pending handover tab
+const handlePendingHandover = async () => {
+
+}
+
+const getOrderIds = async() => {
+    let orderRows = $("tbody tr");
+        // console.log(orderRows);
+
+    let pageOrderIds = [];
+    let mktplSellerId = "526c336daaea4c94";
+
+    for (let i=0; i<orderRows.length; i++) {
+        let orderId = orderRows.eq(i).children("td").eq(0).children("div div").text();
+        pageOrderIds.push(orderId);
+    }
+    
+    // Check if the order exists in the system.
+    chrome.runtime.sendMessage({pageOrderIds, mktplSellerId, marketplace: "flipkart", action:"Check orders exist"});
+    return (orderState);
 }

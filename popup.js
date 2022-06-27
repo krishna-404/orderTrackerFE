@@ -7,7 +7,7 @@ allOrdersInputBtn.addEventListener("click", async() => {
 })
 
 let fkClickCount = 0;
-fkOrderInputBtn.addEventListener("click", async() => {
+fkOrdersInputBtn.addEventListener("click", async() => {
     let [tab] = await chrome.tabs.query({url:"https://seller.flipkart.com/*"});
 
     // chrome.scripting.executeScript({
@@ -16,4 +16,9 @@ fkOrderInputBtn.addEventListener("click", async() => {
     // });
     chrome.tabs.sendMessage(tab.id, {action: "Check Flipkart Orders"});
 
+})
+
+fkReturnsInputBtn.addEventListener("click", async() => {
+    let [tab] = await chrome.tabs.query({url:"https://seller.flipkart.com/*"});
+    chrome.tabs.sendMessage(tab.id, {action:"Check Flipkart Returns"});
 })

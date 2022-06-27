@@ -1,5 +1,5 @@
-let pathUrl, orderState;
-const delay = ms => new Promise(res => setTimeout(res, ms));
+// let pathUrl, orderState;
+// const delay = ms => new Promise(res => setTimeout(res, ms));
 
 chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
     console.log(msg, sender);
@@ -7,14 +7,31 @@ chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
         let {ordersIdsToCreate} = msg.output;
         let ordersDataArray = [];
 
+        // If none of the orders in the page are to be created then stop pagination.
+        if (ordersIdsToCreate[0]) {
+            for (let orderIdToCreate of ordersIdsToCreate) {
+                let orderData = await scrapeOrderData(orderIdToCreate, msg.output.marketplaceName, msg.output.mktplSellerId);
+                ordersDataArray.push(orderData.orderData);
+                if(orderData.shippingData){
+                    ordersDataArray.push(orderData.shippingData);
+                }
+            }
+            console.log(ordersDataArray);
+            chrome.runtime.sendMessage({ordersDataArray, action:"Create orders"});
 
-        for (let orderIdToCreate of ordersIdsToCreate) {
-            let orderData = await scrapeOrderData(orderIdToCreate, msg.output.marketplace, msg.output.mktplSellerId);
-            ordersDataArray.push(orderData);
+            //check pagination status
+            let pageDetailsElement = $("div span:contains('pages')").last();
+            let pageDetails = pageDetailsElement.text().split(" ");
+            console.log({pageDetails});
+            if (Number(pageDetails[0]) < Number(pageDetails[2])) {
+                //navigate to new page in pagination
+                pageDetailsElement.parent().children("i").last().click();
+                await delay(5000);
+                console.log(await getOrderIds());
+            } else {
+                console.log(await handleNavigation(orderState));
+            }
         }
-        console.log(ordersDataArray);
-        // chrome.runtime.sendMessage({ordersDataArray, action:"Create orders"});
-
     }
 });
 
@@ -22,25 +39,21 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
 
     let orderIdElement = $("tbody tr").find(`div:contains(${orderId})`).last();
     let orderRow = orderIdElement.closest('tr').first();
-    // console.log(orderRow);
+    console.log({orderId, orderRow});
 
     let promotionsButton =  orderRow.find('button:contains("Promotions applied")').last();
-    // console.log(promotionsButton);
+    console.log({promotionsButton});
 
     let orderData = {
         mktplOrderId: orderId,
         marketplaceName: marketplaceName,
         mktplSellerId: mktplSellerId,
         sellerName: "zaureplus",
+        type: "orderData",
+        lastAutoCreateTime,
         createdOn: new Date().toISOString()
     };
-
-    let shippingData = {
-        mktplOrderIds: [orderId],
-        createdOn: new Date().toISOString(),
-        marketplaceName: marketplaceName,
-        mktplSellerId: mktplSellerId,
-    };
+    console.log({orderData});
 
     if (promotionsButton) {
         promotionsButton.click();
@@ -48,15 +61,17 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
         orderData.promotionsApplied = [];     
         let promotionsElement = promotionsButton.parent().parent().children().eq(1).find(":contains('Promotions')").last().parent().children();
         for(let k=1; k<promotionsElement.length; k++) {
-            console.log(promotionsElement);
+            // console.log(promotionsElement);
             let promotionDetail = promotionsElement.eq(k).children().eq(0).text();
-            console.log(promotionDetail);
+            // console.log(promotionDetail);
             orderData.promotionsApplied.push(promotionDetail);
         }
         promotionsButton.click();
     };
     
     orderIdElement.click();
+    console.log({orderId}, 'clicked ------');
+    await delay(1500);
 
     let backToListElement = $("button:contains('Back to List')");
     while(!backToListElement[0]){
@@ -64,22 +79,19 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
         await delay(500);
     };
 
-    let orderDetailsElement = backToListElement.parents().eq(2).children().eq(1).children().children().eq(0);
+    let orderDetailsElement = $("div:contains('Buyer Details')").parents().eq(2);
+    console.log({orderDetailsElement});
     
     orderData.orderCreationDate = orderDetailsElement.find("ol li div div:contains('Created')").last().parent().children().eq(1).text();
     orderData.orderApprovalDate = orderDetailsElement.find("ol li div div:contains('Approved')").last().parent().children().eq(1).text();
-    shippingData.orderPackedDate = orderDetailsElement.find("ol li div div:contains('Packed')").last().parent().children().eq(1).text();
-    shippingData.orderRtdDate = orderDetailsElement.find("ol li div div:contains('Ready To Dispatch')").last().parent().children().eq(1).text();
-    shippingData.orderPickupDate = orderDetailsElement.find("ol li div div:contains('Pick up Complete')").last().parent().children().eq(1).text();
-    shippingData.orderDeliveredDate = orderDetailsElement.find("ol li div div:contains('Delivered')").last().parent().children().eq(1).text();
 
-    orderData.orderStatus = {
+    orderData.orderStatus = [{
         date: new Date().toISOString(),
         status : orderDetailsElement.children().eq(0).children().eq(0).children().eq(3).text()
-    };
+    }];
 
     const buyerDetailsElement = orderDetailsElement.find("div:contains('Buyer Details')").last().parent()
-    orderData.buyerDetails = shippingData.buyerDetails = {
+    orderData.buyerDetails = {
         name: buyerDetailsElement.children().eq(1).text(),
         address1: buyerDetailsElement.children().eq(2).text(),
         address2: buyerDetailsElement.children().eq(3).text(),
@@ -88,24 +100,19 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
         state: buyerDetailsElement.children().eq(5).text()
     };
 
-    if (orderState === "shipments_in_transit" || orderState == "pending_services_tab") {
-        shippingData.mktplTrackingId = orderDetailsElement.find("div:contains('Forward ID:')").last().text().slice(12),
-        shippingData.logisticsPartner = orderDetailsElement.find("div:contains('Logistics Partner:')").last().text().slice(19)
-    }
-
     const shipmentDetailsElement = orderDetailsElement.find("div:contains('Shipment Details')").last().parent();
+    console.log({shipmentDetailsElement});
 
-    shippingData.mktplShipmentId =  shipmentDetailsElement.children().eq(1).text().slice(4);
-    shippingData.shipmentMode = orderDetailsElement.children().eq(0).find("svg").last().parent().children().eq(1).text();
-    orderData.paymentMode = shippingData.paymentMode = shipmentDetailsElement.children().eq(3).text();
-    orderData.numberOfProductsOrdered = shippingData.numberOfProductsOrdered = orderDetailsElement.children().eq(2).text().split(" ")[0];
-    orderData.productsDetails = shippingData = [];
+    
+    orderData.paymentMode = shipmentDetailsElement.children().eq(3).text();
+    orderData.numberOfProductsOrdered = orderDetailsElement.children().eq(2).text().split(" ")[0];
+    orderData.productsDetails = [];
     let totalProductAmtCharged = 0, totalShippingAmtCharged = 0, grandTotalAmtCharged = 0;
     let totalTaxAmt = {sgst:0, cgst:0, igst:0, totalTax:0};
 
-    for (let j=1; j<=orderData.numberOfProducts; j++) {
+    for (let j=1; j<=orderData.numberOfProductsOrdered; j++) {
 
-        let productDetailsElement = backToListElement.parents().eq(2).children().eq(1).children().children().eq(j);
+        let productDetailsElement = $("div:contains('Tax Breakup')").parents().eq(2);
 
         let productDetails = {
             mktplOrderId: orderId,
@@ -114,14 +121,14 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
             orderFsnId : productDetailsElement.find("div:contains('FSN')").last().parent().children().eq(1).text(),
             orderHsnCode : productDetailsElement.find("div:contains('HSN')").last().parent().children().eq(1).text(),
             orderQuantity : productDetailsElement.children().eq(1).children().eq(0).find("div:contains('Quantity:')").last().parent().children().eq(1).text().split(" ")[0],
-            productAmtCharged : productDetailsElement.children().eq(1).children().eq(0).find("div:contains('Value:')").last().parent().children().eq(1).text().slice(2),
-            shippingAmtCharged : productDetailsElement.children().eq(1).children().eq(0).find("div:contains('Shipping:')").last().parent().children().eq(1).text().slice(2),
-            totalAmtCharged : productDetailsElement.children().eq(1).children().eq(0).find("div:contains('Total:')").last().parent().children().eq(1).text().slice(2),
+            productAmtCharged : Number(productDetailsElement.children().eq(1).children().eq(0).find("div:contains('Value:')").last().parent().children().eq(1).text().slice(2)),
+            shippingAmtCharged : Number(productDetailsElement.children().eq(1).children().eq(0).find("div:contains('Shipping:')").last().parent().children().eq(1).text().slice(2)),
+            totalAmtCharged : Number(productDetailsElement.children().eq(1).children().eq(0).find("div:contains('Total:')").last().parent().children().eq(1).text().slice(2)),
             taxAmt : {
-                sgst : productDetailsElement.children().eq(1).children().eq(1).find("div:contains('SGST:')").last().parent().children().eq(1).text().slice(2),
-                cgst : productDetailsElement.children().eq(1).children().eq(1).find("div:contains('CGST:')").last().parent().children().eq(1).text().slice(2),
-                igst : productDetailsElement.children().eq(1).children().eq(1).find("div:contains('IGST:')").last().parent().children().eq(1).text().slice(2),
-                totalTax: productDetailsElement.children().eq(1).children().eq(1).find("div:contains('IGST:')").last().parent().children().eq(1).text().slice(2)
+                sgst : Number(productDetailsElement.children().eq(1).children().eq(1).find("div:contains('SGST:')").last().parent().children().eq(1).text().slice(2)),
+                cgst : Number(productDetailsElement.children().eq(1).children().eq(1).find("div:contains('CGST:')").last().parent().children().eq(1).text().slice(2)),
+                igst : Number(productDetailsElement.children().eq(1).children().eq(1).find("div:contains('IGST:')").last().parent().children().eq(1).text().slice(2)),
+                totalTax: Number(productDetailsElement.children().eq(1).children().eq(1).find("div:contains('IGST:')").last().parent().children().eq(1).text().slice(2))
             }
         }
 
@@ -134,7 +141,6 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
         totalTaxAmt.totalTax += productDetails.taxAmt.totalTax;
 
         orderData.productsDetails.push(productDetails);
-        shippingData.productDetails.push(productDetails);
     }   
 
     orderData = {
@@ -145,10 +151,39 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
         totalTaxAmt
     }
 
-    shippingData = {
-        ...shippingData,
-        grandTotalAmtCharged
+    let shippingData;
+    if (orderState !== "shipments_to_pack" && orderState !== "shipments_upcoming"){
+        shippingData = {
+            mktplOrderIds: [orderId],
+            createdOn: new Date().toISOString(),
+            marketplaceName: marketplaceName,
+            mktplSellerId: mktplSellerId,
+            type: "shippingData",
+            orderStatus : orderData.orderStatus,
+            buyerDetails : orderData.buyerDetails,
+            mktplShipmentId : shipmentDetailsElement.children().eq(1).text().slice(4),
+            shipmentMode : orderDetailsElement.children().eq(0).find("svg").last().parent().children().eq(1).text(),
+            paymentMode : orderData.paymentMode,
+            numberOfProductsOrdered : orderData.numberOfProductsOrdered,
+            productsDetails : orderData.productsDetails,
+            grandTotalAmtCharged
+        }
+
+        shippingData.orderPackedDate = orderDetailsElement.find("ol li div div:contains('Packed')").last().parent().children().eq(1).text();
+        if(orderState !== "shipments_to_dispatch"){
+            shippingData.orderRtdDate = orderDetailsElement.find("ol li div div:contains('Ready To Dispatch')").last().parent().children().eq(1).text();
+            if(orderState !== "shipments_to_handover"){
+                shippingData.orderPickupDate = orderDetailsElement.find("ol li div div:contains('Pick up Complete')").last().parent().children().eq(1).text();
+                shippingData.mktplTrackingId = orderDetailsElement.find("div:contains('Forward ID:')").last().text().slice(12),
+                shippingData.logisticsPartner = orderDetailsElement.find("div:contains('Logistics Partner:')").last().text().slice(19)
+        
+                if(orderState === "shipments_delivered"){
+                    shippingData.orderDeliveredDate = orderDetailsElement.find("ol li div div:contains('Delivered')").last().parent().children().eq(1).text();
+                }
+            }
+        }
     }
+
     // console.log(orderData);
     // await delay(1500);
     

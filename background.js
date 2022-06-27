@@ -56,5 +56,12 @@ chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
         }).then(apiRes => {
             console.log(apiRes, apiRes.json());
         })
+    } else if (msg.action === "Check Last FK Auto Create Time") {
+        let apiUrl = `${config.apiUrl}/lastOrderAutoUpdate/fkOrdersAutoCreate`;
+        console.log({apiUrl});
+        fetch(apiUrl).then(result => {
+            console.log({result});
+            chrome.tabs.sendMessage(sender.tab.id, {result, action:"Res - fkOrdersAutoCreate"});
+        })
     }
 })

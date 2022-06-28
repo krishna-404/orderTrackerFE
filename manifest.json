@@ -1,60 +1,68 @@
 {
-    "name":"Tezi Order Analyser",
-    "description": "Orders & Return Tracking & Analysing tool.",
-    "version": "0.1.0",
-    "manifest_version":3,
-    "background": {
-        "service_worker": "background.js"
-    },
-    "options_page": "options.html",
-    "permissions": [
-        // "activeTab",
-        "tabs",
-        "storage",
-        "scripting"
-    ],
-    // "optional_permissions": [
-    //     "tabs"
-    // ],
-    "host_permissions": [
+  "name": "Tezi Order Analyser",
+  "description": "Orders & Return Tracking & Analysing tool.",
+  "version": "0.1.0",
+  "manifest_version": 3,
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "permissions": [
+    // "activeTab",
+    "tabs",
+    "storage",
+    "scripting"
+  ],
+  // "optional_permissions": [
+  //     "tabs"
+  // ],
+  "host_permissions": [
+    "https://seller.bijnis.com/*",
+    "https://seller.flipkart.com/*",
+    "http://localhost:1729/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
         "https://seller.flipkart.com/*",
-        "http://localhost:1729/*"
-    ],
-    "content_scripts": [
-        {
-            "matches": ["https://seller.flipkart.com/*"],
-            "js": ["jquery-3.6.0.js", "flipkart/fkGeneral.js"]
-            // "run_at": "document_idle",
-            // "all_frames": false
-        },
-        {
-            "matches": ["https://seller.flipkart.com/index.html*"],
-            "js": ["flipkart/fkOrderNavigation.js", "flipkart/fkOrderInput.js"]
-            // "run_at": "document_idle",
-            // "all_frames": false
-        },
-        {
-            "matches": ["https://seller.flipkart.com/index.html*"],
-            "js": ["flipkart/fkReturnNavigation.js", "flipkart/fkReturnInput.js"]
-        }
-    ],
-    "action": {
-        "default_popup": "popup.html",
-        "default_icon": {
-            "16": "images/ico_16x16.png",
-            "32": "images/ico_32x32.png",
-            "48": "images/ico_48x48.png",
-            "50": "images/ico_50x50.png",
-            "128": "images/ico_128x128.png",
-            "452": "images/ico_452x452.png"
-        }
+        "https://seller.bijnis.com/*"
+      ],
+      "js": [
+        "jquery-3.6.0.js",
+        "flipkart/fkGeneral.js",
+        "bijnis/bijnisnGenreal.js"
+      ]
+      // "run_at": "document_idle",
+      // "all_frames": false
     },
-    "icons": {
-        "16": "images/ico_16x16.png",
-        "32": "images/ico_32x32.png",
-        "48": "images/ico_48x48.png",
-        "50": "images/ico_50x50.png",
-        "128": "images/ico_128x128.png",
-        "452": "images/ico_452x452.png"
+    {
+      "matches": ["https://seller.flipkart.com/index.html*"],
+      "js": ["flipkart/fkOrderNavigation.js", "flipkart/fkOrderInput.js"]
+      // "run_at": "document_idle",
+      // "all_frames": false
+    },
+    {
+      "matches": ["https://seller.bijnis.com/*/orders"],
+      "js": ["bijnis/bijnisNavigatioin.js"]
     }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/ico_16x16.png",
+      "32": "images/ico_32x32.png",
+      "48": "images/ico_48x48.png",
+      "50": "images/ico_50x50.png",
+      "128": "images/ico_128x128.png",
+      "452": "images/ico_452x452.png"
+    }
+  },
+  "icons": {
+    "16": "images/ico_16x16.png",
+    "32": "images/ico_32x32.png",
+    "48": "images/ico_48x48.png",
+    "50": "images/ico_50x50.png",
+    "128": "images/ico_128x128.png",
+    "452": "images/ico_452x452.png"
+  }
 }

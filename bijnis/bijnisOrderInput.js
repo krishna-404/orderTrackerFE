@@ -290,7 +290,7 @@ const scrapeOrderData = async (
       logisticsPartner: logisticsPartner,
       numberOfProductsOrdered: orderData.numberOfProductsOrdered,
       productsDetails: orderData.productsDetails,
-      grandTotalAmtCharged,
+      grandTotalAmtCharged: orderData.grandTotalAmtCharged,
     };
   }
   if (presentTab === "Pickup Pending") {

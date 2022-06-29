@@ -23,15 +23,14 @@
   ],
   "content_scripts": [
     {
-      "matches": [
-        "https://seller.flipkart.com/*",
-        "https://seller.bijnis.com/*"
-      ],
-      "js": [
-        "jquery-3.6.0.js",
-        "flipkart/fkGeneral.js",
-        "bijnis/bijnisnGenreal.js"
-      ]
+      "matches": ["https://seller.flipkart.com/*"],
+      "js": ["jquery-3.6.0.js", "flipkart/fkGeneral.js"]
+      // "run_at": "document_idle",
+      // "all_frames": false
+    },
+    {
+      "matches": ["https://seller.bijnis.com/*"],
+      "js": ["jquery-3.6.0.js", "bijnis/bijnisnGenreal.js"]
       // "run_at": "document_idle",
       // "all_frames": false
     },
@@ -42,8 +41,12 @@
       // "all_frames": false
     },
     {
-      "matches": ["https://seller.bijnis.com/*/orders"],
-      "js": ["bijnis/bijnisNavigatioin.js"]
+      "matches": ["https://seller.bijnis.com/v2/orders/*"],
+      "js": [
+        "jquery-3.6.0.js",
+        "bijnis/bijnisNavigatioin.js",
+        "bijnis/bijnisOrderInput.js"
+      ]
     }
   ],
   "action": {

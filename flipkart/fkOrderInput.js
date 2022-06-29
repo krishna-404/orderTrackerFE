@@ -3,7 +3,10 @@
 
 chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
   console.log(msg, sender);
-  if (msg.action === "Res - Check orders exist") {
+  if (
+    msg.action === "Res - Check orders exist" &&
+    msg.output.marketplaceName == "flipkart"
+  ) {
     let { ordersIdsToCreate } = msg.output;
     let ordersDataArray = [];
 

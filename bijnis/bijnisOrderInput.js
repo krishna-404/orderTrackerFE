@@ -94,7 +94,7 @@ const scrapeOrderData = async (
     .children()
     .text();
   orderData.numberOfProductsOrdered = priceAndquantityText.split(/\W+/gm)[2];
-  orderData.totalProductAmtCharged = priceAndquantityText.split(/\W+/gm)[1];
+  orderData.grandTotalAmtCharged = priceAndquantityText.split(/\W+/gm)[1];
   orderData.subQuantity = priceAndquantityText.split(/\W+/gm)[4];
   orderData.orderCreationDate = orderIdElement
     .children()
@@ -138,6 +138,7 @@ const scrapeOrderData = async (
       .eq(1)
       .text()
       .split(/\W+/gm)[0];
+    let totalProductAmtCharged = 0;
 
     //collecting productdata which is grouped in  a lot,
     for (let j = 0; j < subProductQuantity; j++) {
@@ -161,25 +162,61 @@ const scrapeOrderData = async (
         .find("p:contains('Quantity :')")
         .eq(j)
         .text()
-        .split(/\D+/gm)[0];
-      //click that price side button to open a total view
-      let productAmtCharged = productDetailsElement
+        .split(/\D+/gm)[1];
+      let amountOfPairs = productDetailsElement
         .children()
         .eq(i)
-        .find("div:contains('Bijnis Price')");
+        .find("p:contains('Quantity :')")
+        .eq(j)
+        .text()
+        .split(/\D+/gm)[2];
+      let colour = productDetailsElement
+        .children()
+        .eq(i)
+        .find("p:contains('Colour : ')")
+        .eq(j)
+        .text()
+        .split(/Colour : /gm)[1];
+      //click that price side button to open a total view
+      productDetailsElement.children().eq(i).find("img").eq(0).click();
+      let productAmtCharged = $("tr:contains('Seller Price')")
+        .children()
+        .last()
+        .text()
+        .split(/₹/gm)[1];
+      let taxAmt = $("tr:contains('Product GST')")
+        .children()
+        .last()
+        .text()
+        .split(/₹/gm)[1];
+      let promotionAmt = $("tr:contains('Factory Discount')")
+        .children()
+        .last()
+        .text()
+        .split(/₹/gm)[1];
       let productDetail = {
         mktplOrderId: orderId,
+        productName: productName,
+        productSetType: productSetType,
         orderSkuId: `c_${articleNo}_${sizeSet}`,
         orderQuantity: orderQuantity,
-        productAmtCharged: "365",
-        taxAmt: "total gst amt",
-        promotionAmt: "factorydiscount",
+        productAmtCharged: productAmtCharged,
+        taxAmt: taxAmt,
+        promotionAmt: promotionAmt,
         totalAmtCharged:
-          (productAmtCharged + taxAmt + promotionAmt) * "amount of pairs",
-        colour: "somthing",
-        size: "",
+          (productAmtCharged + taxAmt + promotionAmt) * amountOfPairs,
+        colour: colour,
+        size: sizeSet,
       };
+      orderData.productsDetails.push(productDetail);
     }
+    // totalProductAmtCharged += productDetail.productAmtCharged;
   }
+  console.log(orderData);
+  orderData = {
+    ...orderData,
+    // totalProductAmtCharged,
+  };
+  console.log("===orderData ===", orderData);
   return orderData;
 };

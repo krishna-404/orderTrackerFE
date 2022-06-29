@@ -82,11 +82,34 @@ const scrapeOrderData = async (
     createdOn: new Date().toISOString(),
   };
   let buyerDetailsElement = orderIdElement.children().eq(0).children().last();
-  orderData.buyerDetails = {
+  let buyerDetails;
+  buyerDetails = {
     name: buyerDetailsElement.children().eq(1).text(),
     phoneNumber: buyerDetailsElement.children().eq(2).text(),
     address1: buyerDetailsElement.children().eq(3).text(),
   };
+  //clicking that buyer history button and scraaping order data
+  orderIdElement.find("button:contains('Buyer History')").click();
+  let cancellationRate = $("div:contains('Cancellation')")
+    .last()
+    .children()
+    .last()
+    .text();
+  let RTOrate = $("div:contains('RTO')").last().children().last().text();
+  let genuineReturns = $("div:contains('Genuine Returns')")
+    .last()
+    .children()
+    .last()
+    .text();
+  let nonGenuineReturns = $("div:contains('Non Genuine Returns')")
+    .last()
+    .children()
+    .last()
+    .text();
+  buyerDetails.cancellationRate = cancellationRate;
+  buyerDetails.RTOrate = RTOrate;
+  buyerDetails.genuineReturns = genuineReturns;
+  buyerDetails.nonGenuineReturns = nonGenuineReturns;
   console.log(orderData);
   let priceAndquantityText = orderIdElement
     .children()
@@ -326,5 +349,5 @@ const scrapeOrderData = async (
     shippingData.orderCancellationDate = orderCancellationDate;
   }
 
-  return { orderData, shippingData };
+  return { orderData, shippingData, buyerDetails };
 };

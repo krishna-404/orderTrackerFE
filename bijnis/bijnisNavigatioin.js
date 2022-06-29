@@ -52,14 +52,14 @@ const bijnisNavigation = async (presentTab) => {
   if (orderQuantity > 0) {
     console.log(tabName);
     $(tab).click();
-    await bijnisGetOrderIds(nextElementMarker);
+    await bijnisGetOrderIds(nextElementMarker, presentTab);
   } else if (nextElementMarker != "bijnis Order Sync Complete") {
     console.log({ nextElementMarker, presentTab });
     return bijnisNavigation(nextElementMarker);
   }
 };
 
-const bijnisGetOrderIds = async (nextElementMarker) => {
+const bijnisGetOrderIds = async (nextElementMarker, presentTab) => {
   await delay(5000);
   let orderRows = $("table tr");
   let pageOrderIds = [];
@@ -88,5 +88,6 @@ const bijnisGetOrderIds = async (nextElementMarker) => {
     marketplaceName: "bijnis",
     action: "Check orders exist",
     nextElementMarker,
+    presentTab,
   });
 };

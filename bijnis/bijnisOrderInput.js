@@ -3,7 +3,7 @@ chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
     msg.action === "Res - Check orders exist" &&
     msg.output.marketplaceName == "bijnis"
   ) {
-    let { ordersIdsToCreate, nextElementMarker } = msg.output;
+    let { ordersIdsToCreate, nextElementMarker, presentTab } = msg.output;
     console.log(ordersIdsToCreate);
     let ordersDataArray = [];
     //if order exist then scrap them then do the pagination
@@ -22,7 +22,8 @@ chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
             orderIdToCreate,
             msg.output.marketplaceName,
             msg.output.mktplSellerId,
-            nextElementMarker
+            nextElementMarker,
+            presentTab
           )
         );
         // ordersDataArray.push(orderData.orderData);
@@ -62,7 +63,8 @@ const scrapeOrderData = async (
   orderId,
   marketplaceName,
   mktplSellerId,
-  nextElementMarker
+  nextElementMarker,
+  presentTab
 ) => {
   console.log("scrapping your data wait plzzz");
   let orderIdElement = $("div table tr")
@@ -96,14 +98,34 @@ const scrapeOrderData = async (
   orderData.numberOfProductsOrdered = priceAndquantityText.split(/\W+/gm)[2];
   orderData.grandTotalAmtCharged = priceAndquantityText.split(/\W+/gm)[1];
   orderData.subQuantity = priceAndquantityText.split(/\W+/gm)[4];
-  orderData.orderCreationDate = orderIdElement
-    .children()
-    .eq(2)
-    .find("span:contains('Placed Date')")
-    .parent()
-    .children()
-    .eq(1)
-    .text();
+  orderData.orderStatus = presentTab;
+  orderData.shippingData;
+  if (
+    nextElementMarker === "In Process" ||
+    nextElementMarker === "bijnis Order Sync Complete" ||
+    nextElementMarker === "Packaging" ||
+    nextElementMarker === "Pickup Pending"
+  ) {
+    orderData.orderCreationDate = orderIdElement
+      .children()
+      .eq(2)
+      .find("span:contains('Placed Date')")
+      .parent()
+      .children()
+      .eq(1)
+      .text();
+  }
+  if (
+    presentTab === "Pickup Pending" ||
+    presentTab === "Pickup Done" ||
+    presentTab === "In Transit" ||
+    presentTab === "Completed"
+  ) {
+    orderData.invoiceNo = orderIdElement
+      .find("div:contains('Invoice No')")
+      .text()
+      .split(/Invoice No/gm)[1];
+  }
   //click view items button to get product details
   orderIdElement.children().find("button:Contains('View Items')").click();
   await delay(1000);
@@ -218,5 +240,91 @@ const scrapeOrderData = async (
     // totalProductAmtCharged,
   };
   console.log("===orderData ===", orderData);
-  return orderData;
+  let shippingData;
+  if (
+    nextElementMarker !== "In Process" ||
+    nextElementMarker !== "bijnis Order Sync Complete" ||
+    nextElementMarker !== "Packaging" ||
+    nextElementMarker !== "Pickup Pending"
+  ) {
+    let trackId = orderIdElement
+      .find("div:contains('Waybill Number')")
+      .text()
+      .split(/Waybill Number/gm)[1];
+    let logisticsPartner = orderIdElement
+      .find("div:contains('Waybill Number')")
+      .text()
+      .split(/Waybill Number/gm)[1];
+    shippingData = {
+      mktplOrderIds: [orderId],
+      createdOn: new Date().toISOString(),
+      marketplaceName: marketplaceName,
+      mktplSellerId: mktplSellerId,
+      type: "shippingData",
+      buyerDetails: orderData.buyerDetails,
+      //trackId = waybillnumber
+      trackId: trackId,
+      logisticsPartner: logisticsPartner,
+      numberOfProductsOrdered: orderData.numberOfProductsOrdered,
+      productsDetails: orderData.productsDetails,
+      grandTotalAmtCharged,
+    };
+  }
+  if (presentTab === "Pickup Pending") {
+    orderIdElement.find("button:contains('View Delivery Details')").click();
+    await delay(500);
+    let orderPackedDate = $("tr:contains('Request Pickup On:')")
+      .children()
+      .eq(1)
+      .text();
+    let orderConfirmationDate = $("tr:contains('Confirmed On:')")
+      .children()
+      .eq(1)
+      .text();
+    shippingData.orderPackedDate = orderPackedDate;
+    shippingData.orderConfirmationDate = orderConfirmationDate;
+  } else if (presentTab === "Pickup Done") {
+    //waiting for order to go in that tab
+  } else if (presentTab === "In Transit") {
+    orderIdElement.find("button:contains('Track Order Status')").click();
+    await delay(500);
+    let orderPickupDate = $("tr:contains('Pickup Done On:')")
+      .children()
+      .eq(1)
+      .text();
+    let dispatchDate = $("tr:contains('Dispatched On:')")
+      .children()
+      .eq(1)
+      .text();
+    let destinationDate = $("tr:contains('Arrived at Destination On:')")
+      .children()
+      .eq(1)
+      .text();
+    shippingData.orderPickupDate = orderPickupDate;
+    shippingData.dispatchDate = dispatchDate;
+    shippingData.DeliveredDate = destinationDate;
+  } else if (presentTab === "Completed") {
+    let DeliveredDate = orderIdElement
+      .find("div:contains('Delivered To Buyer:')")
+      .last()
+      .text()
+      .split(/Delivered To Buyer: /gm)[1];
+    orderIdElement.find("button:contains('View Delivery Details')").click();
+    await delay(500);
+    let outOfDeliveryDate = $("tr:contains('Out for Delivery On:')")
+      .children()
+      .eq(1)
+      .text();
+    shippingData.DeliveredDate = DeliveredDate;
+    shippingData.outOfDeliveryDate = outOfDeliveryDate;
+  } else if (presentTab === "Cancelled") {
+    let orderCancellationDate = orderIdElement
+      .find("div:contains('Cancelled On :')")
+      .last()
+      .text()
+      .split(/Cancelled On :/gm)[1];
+    shippingData.orderCancellationDate = orderCancellationDate;
+  }
+
+  return { orderData, shippingData };
 };

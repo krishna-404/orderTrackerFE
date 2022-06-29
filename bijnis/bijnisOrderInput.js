@@ -304,8 +304,8 @@ const scrapeOrderData = async (
       .children()
       .eq(1)
       .text();
-    shippingData.orderPackedDate = orderPackedDate;
-    shippingData.orderConfirmationDate = orderConfirmationDate;
+    shippingData.shipmentPackedDate = orderPackedDate;
+    shippingData.shipmentConfirmationDate = orderConfirmationDate;
   } else if (presentTab === "Pickup Done") {
     //waiting for order to go in that tab
   } else if (presentTab === "In Transit") {
@@ -323,9 +323,9 @@ const scrapeOrderData = async (
       .children()
       .eq(1)
       .text();
-    shippingData.orderPickupDate = orderPickupDate;
-    shippingData.dispatchDate = dispatchDate;
-    shippingData.DeliveredDate = destinationDate;
+    shippingData.shipmentPickedDate = orderPickupDate;
+    shippingData.shipmentDispatchDate = dispatchDate;
+    shippingData.shipmentDestinationDate = destinationDate;
   } else if (presentTab === "Completed") {
     let DeliveredDate = orderIdElement
       .find("div:contains('Delivered To Buyer:')")
@@ -338,15 +338,15 @@ const scrapeOrderData = async (
       .children()
       .eq(1)
       .text();
-    shippingData.DeliveredDate = DeliveredDate;
-    shippingData.outOfDeliveryDate = outOfDeliveryDate;
+    shippingData.shipmentDeliveredDate = DeliveredDate;
+    shippingData.shipmentOutOfDeliveryDate = outOfDeliveryDate;
   } else if (presentTab === "Cancelled") {
     let orderCancellationDate = orderIdElement
       .find("div:contains('Cancelled On :')")
       .last()
       .text()
       .split(/Cancelled On :/gm)[1];
-    shippingData.orderCancellationDate = orderCancellationDate;
+    shippingData.shipmentCancellationDate = orderCancellationDate;
   }
 
   return { orderData, shippingData, buyerDetails };

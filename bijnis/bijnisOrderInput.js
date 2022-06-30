@@ -26,7 +26,7 @@ chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
             presentTab
           )
         );
-        // ordersDataArray.push(orderData.orderData);
+        ordersDataArray.push(orderData.orderData);
         if (bijnisOrderData && bijnisOrderData.shippingData) {
           ordersDataArray.push(bijnisOrderData.shippingData);
         }
@@ -34,7 +34,7 @@ chrome.runtime.onMessage.addListener(async (msg, sender, msgRes) => {
         console.log(bijnisOrderData);
         console.log(ordersDataArray);
       }
-      // chrome.runtime.sendMessage({ ordersDataArray, action: "Create orders" });
+      chrome.runtime.sendMessage({ ordersDataArray, action: "Create orders" });
 
       //pagination if it is there, or go to next tab
       let pageDetailsElement = $("div:contains('pages')").last();
@@ -260,6 +260,7 @@ const scrapeOrderData = async (
   console.log(orderData);
   orderData = {
     ...orderData,
+    buyerDetails,
     // totalProductAmtCharged,
   };
   console.log("===orderData ===", orderData);

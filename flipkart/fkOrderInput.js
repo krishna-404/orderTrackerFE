@@ -54,7 +54,7 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
 
   let orderData = {
     mktplOrderId: orderId,
-    marketplaceName: marketplaceName,
+    marketplName: marketplaceName,
     mktplSellerId: mktplSellerId,
     sellerName: "zaureplus",
     type: "orderData",
@@ -113,7 +113,7 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
     .eq(1)
     .text();
 
-  orderData.orderStatus = [
+  orderData.marketplStatus = [
     {
       date: new Date().toISOString(),
       status: orderDetailsElement
@@ -333,11 +333,11 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
   ) {
     shippingData = {
       mktplOrderIds: [orderId],
-      createdOn: new Date().toISOString(),
-      marketplaceName: marketplaceName,
+      docCreatedOn: new Date().toISOString(),
+      mktplName: marketplaceName,
       mktplSellerId: mktplSellerId,
       type: "shippingData",
-      orderStatus: orderData.orderStatus,
+      mktplOrderStatus: orderData.orderStatus,
       buyerDetails: orderData.buyerDetails,
       mktplShipmentId: shipmentDetailsElement.children().eq(1).text().slice(4),
       shipmentMode: orderDetailsElement
@@ -355,7 +355,7 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
       grandTotalAmtCharged,
     };
 
-    shippingData.orderPackedDate = orderDetailsElement
+    shippingData.shipmentPackedDate = orderDetailsElement
       .find("ol li div div:contains('Packed')")
       .last()
       .parent()
@@ -363,7 +363,7 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
       .eq(1)
       .text();
     if (orderState !== "shipments_to_dispatch") {
-      shippingData.orderRtdDate = orderDetailsElement
+      shippingData.shipmentRtdDate = orderDetailsElement
         .find("ol li div div:contains('Ready To Dispatch')")
         .last()
         .parent()
@@ -371,7 +371,7 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
         .eq(1)
         .text();
       if (orderState !== "shipments_to_handover") {
-        shippingData.orderPickupDate = orderDetailsElement
+        shippingData.shipmentPickedDate = orderDetailsElement
           .find("ol li div div:contains('Pick up Complete')")
           .last()
           .parent()
@@ -390,7 +390,7 @@ const scrapeOrderData = async (orderId, marketplaceName, mktplSellerId) => {
             .slice(19));
 
         if (orderState === "shipments_delivered") {
-          shippingData.orderDeliveredDate = orderDetailsElement
+          shippingData.shipmentDeliveredDate = orderDetailsElement
             .find("ol li div div:contains('Delivered')")
             .last()
             .parent()
